@@ -56,9 +56,9 @@ shapely = ">= 1.7.0"
 dbfread = "*"
 
 pydicom = ">=2.0.0"
+pylinac = ">=2.3.2"
 pynetdicom = "*"
 pylibjpeg-libjpeg = "*"
-pylinac = ">=2.3.2"
 
 # difficult
 cython = "*"
