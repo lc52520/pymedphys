@@ -17,7 +17,11 @@
 # pylint: disable = no-value-for-parameter, expression-not-assigned
 # pylint: disable = too-many-lines, redefined-outer-name
 
+import collections
+
 import pymssql
+
+import pandas as pd
 
 import streamlit as st
 
@@ -61,18 +65,37 @@ for centre in centres:
             cursor_bucket["cursor"], physics_location
         )
 
+    table_dict = collections.OrderedDict()
+
     for index, row in table.iterrows():
-        patient_header = (
-            f"### `{row.patient_id}` {str(row.last_name).upper()}, "
-            f"{str(row.first_name).lower().capitalize()}"
+        patient_name = (
+            f"{str(row.last_name).upper()}, {str(row.first_name).lower().capitalize()}"
         )
-        st.write(patient_header)
 
-        f"Due: `{row.due}`"
-        if row.instructions:
-            f"Instructions: `{row.instructions}`"
+        # patient_header = f"### `{row.patient_id}` {patient_name}"
+        # st.write(patient_header)
 
-        if row.comment:
-            f"Comment: `{row.comment}`"
+        # f"Due: `{row.due}`"
+        # if row.instructions:
+        #     f"Instructions: `{row.instructions}`"
 
-        f"Task: `{row.task}`"
+        # if row.comment:
+        #     f"Comment: `{row.comment}`"
+
+        # f"Task: `{row.task}`"
+
+        table_dict[index] = collections.OrderedDict(
+            {
+                "Due": row.due.strftime("%Y-%m-%d"),
+                "Patient": f"{row.patient_id} {patient_name}",
+                "Instructions": row.instructions,
+                "Comment": row.comment,
+                "Task": row.task,
+            }
+        )
+
+    formated_table = pd.DataFrame.from_dict(table_dict).T
+    formated_table = formated_table.reindex(
+        ["Due", "Patient", "Instructions", "Comment", "Task"], axis=1
+    )
+    formated_table
