@@ -117,12 +117,24 @@ def trf_status(linac_id, backup_directory):
 
 
 def show_status_indicators():
-    linac_icom_live_stream_directories = _config.get_icom_live_stream_directories()
-    linac_indexed_backups_directory = _config.get_indexed_backups_directory()
-
-    linac_ids = list(linac_icom_live_stream_directories.keys())
-
     if st.sidebar.button("Check status of iCOM and backups"):
+        try:
+            linac_icom_live_stream_directories = (
+                _config.get_icom_live_stream_directories()
+            )
+            linac_indexed_backups_directory = _config.get_indexed_backups_directory()
+        except KeyError:
+            st.sidebar.write(
+                _exceptions.ConfigMissing(
+                    "iCOM and/or TRF backup configuration is missing. "
+                    "Unable to show status."
+                )
+            )
+
+            return
+
+        linac_ids = list(linac_icom_live_stream_directories.keys())
+
         st.sidebar.markdown(
             """
             ## Last recorded iCOM stream
@@ -140,10 +152,6 @@ def show_status_indicators():
 
         for linac_id in linac_ids:
             trf_status(linac_id, linac_indexed_backups_directory)
-
-    """
-    ## Selection of data to compare
-    """
 
 
 @st.cache
@@ -283,8 +291,6 @@ def dicom_input_method(  # pylint: disable = too-many-return-statements
     FILE_UPLOAD = "File upload"
     MONACO_SEARCH = "Search Monaco file export location"
 
-    dicom_export_locations = _config.get_dicom_export_locations()
-
     import_method = st.radio(
         "DICOM import method",
         [FILE_UPLOAD, MONACO_SEARCH],
@@ -313,9 +319,20 @@ def dicom_input_method(  # pylint: disable = too-many-return-statements
             )
             return {}
 
-        data_paths = ["Uploaded DICOM file"]
+        data_paths = []
 
     if import_method == MONACO_SEARCH:
+        try:
+            dicom_export_locations = _config.get_dicom_export_locations()
+        except KeyError:
+            st.write(
+                _exceptions.ConfigMissing(
+                    "No Monaco directory is configured. Please use "
+                    f"'{FILE_UPLOAD}' instead."
+                )
+            )
+            return {}
+
         monaco_site = st_misc.site_picker(
             "Monaco Export Location",
             default=monaco_site,
@@ -1073,6 +1090,12 @@ def main():
     for method in available_data_methods:
         data_method_map[DATA_OPTION_LABELS[method]] = data_option_functions[method]
 
+    st.write(
+        """
+        ## Selection of data to compare
+        """
+    )
+
     """
     ### Reference
     """
@@ -1116,8 +1139,10 @@ def main():
         "eScan Site", "escan", default=default_site, key="escan_export_site_picker"
     )
 
+    escan_directory = pathlib.Path(os.path.expanduser(escan_directory)).resolve()
+
     if advanced_mode:
-        st.write(escan_directory.resolve())
+        st.write(escan_directory)
 
     default_png_output_directory = config["output"]["png_directory"]
 
@@ -1135,6 +1160,10 @@ def main():
 
     else:
         png_output_directory = pathlib.Path(default_png_output_directory)
+
+    png_output_directory = pathlib.Path(
+        os.path.expanduser(png_output_directory)
+    ).resolve()
 
     """
     ## Calculation
